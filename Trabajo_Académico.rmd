@@ -1,0 +1,231 @@
+---
+title: "Trabajo académico"
+author: "Álvaro Trives Hernandis, Pablo Aleixandre Moreno, Pablo ortiz Badenes y Rubén García Villoldo"
+date: "Curso 2026/2027"
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+---
+
+## Importación de datos y descripción de variables
+
+Se importan las variables necesarias para el análisis, y se muestran las primeras 3 filas para comprobar que se han cargado correctamente.
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+#setwd("~/Desktop/Universidad/INFEST/Trabajo académico")
+```
+
+```{r datos, echo=TRUE}
+
+datos = read.table("AbandoEst_10.txt", header=TRUE, as.is = TRUE)
+dim(datos)
+head(datos, 3)  # mostrar las primeras 3 observaciones de la BBDD
+```
+
+Se especifica el tipo para cada variable, y se muestra un resumen de las mismas.
+
+```{r tipos, echo = TRUE}
+descDropout = data.frame("variable" = colnames(datos),
+                         "tipo" = c("binary", rep("categorical",2), "binary", "categorical", "numerical", rep("categorical",4), "numerical", rep("binary",6), "numerical", "binary", rep("numerical",8), "categorical"), stringsAsFactor = FALSE)
+
+rownames(descDropout) = descDropout$variable
+descDropout
+```
+
+## Resumen de variables y coeficientes de variación
+
+Se hace un resumen de las variables numéricas, binarias y categóricas, y calcula el coeficiente de variación para las variables numéricas,y se muestran las tablas de frecuencia para las variables binarias y categóricas.
+
+```{r resumen, echo=TRUE}
+
+summary(datos[,descDropout$variable[descDropout$tipo == "numerical"]])
+
+mySD = apply(datos[,descDropout$variable[descDropout$tipo == "numerical"]], 2, sd)
+myMU = colMeans(datos[,descDropout$variable[descDropout$tipo == "numerical"]])
+myCV = mySD/myMU
+sort(myCV)
+
+apply(datos[,descDropout$variable[descDropout$tipo == "binary"]], 2, table, useNA = "i")
+
+apply(datos[,descDropout$variable[descDropout$tipo == "categorical"]], 2, table, useNA = "i")
+
+apply(datos[,descDropout$variable[descDropout$tipo == "categorical"]], 2,
+      function (x) round(100*table(x)/sum(table(x)), 2))
+```
+
+Podemos apreciar que no hay ninguna variable con un coeficiente de variación 0, sugiriendo que no hay variables constantes. Por otra parte, la variable Educational.special.needs tiene tan solo una muestra con valor 1, luego se puede eliminar pues se toma como casi constante, ya que no se podrán extraer conclusiones a partir de ella.
+
+## Eliminación de variables y datos anómalos
+
+```{r eliminar, echo=TRUE}
+
+datos = datos[,setdiff(colnames(datos), "Educational.special.needs")]
+descDropout = descDropout[colnames(datos),]
+
+```
+
+```{r boxplots, echo=TRUE}
+
+num_vars <- descDropout$variable[descDropout$tipo == "numerical"]
+# boxplot(datos[, num_vars[1:2]], las = 1, main = "Boxplot numéricas (grupo 1)")
+
+library(ggplot2)
+datos_grupo1 <- stack(datos[, num_vars[1:2]])
+ggplot(datos_grupo1, aes(x = ind, y = values)) +
+  geom_boxplot(fill = "#69b3a2") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 11)
+  ) +
+  ggtitle("Boxplot numéricas (grupo 1)") +
+  xlab("") +
+  ylab("Valor")
+#boxplot(datos[, num_vars[c(3,5)]], names = num_vars[c(3,5)], main = "Boxplot numéricas (grupo 2)")
+
+datos_grupo2 <- stack(datos[, num_vars[c(3,5)]])
+ggplot(datos_grupo2, aes(x = ind, y = values)) +
+  geom_boxplot(fill = "#69b3a2") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 11)
+  ) +
+  ggtitle("Boxplot numéricas (grupo 2)") +
+  xlab("") +
+  ylab("Valor")
+
+par(mar = c(10, 3, 2, 2)) # Se deja más márgen para los nombres
+# boxplot(datos[, num_vars[-(c(1:3,5))]], las = 2, cex.axis = 0.6, main = "Boxplot numéricas (grupo 3)")
+
+
+datos_grupo3 <- stack(datos[, num_vars[-(c(1:3,5))]])
+ggplot(datos_grupo3, aes(x = ind, y = values)) +
+  geom_boxplot(fill = "#69b3a2") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 11),
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
+  ) +
+  ggtitle("Boxplot numéricas (grupo 3)") +
+  xlab("") +
+  ylab("Valor")
+```
+
+Puesto que las variables numéricas tienen rangos muy distintos, se representan en tres diagramas de caja y bigotes distintos, para que los ejes se vean correctamente, y se observa que hay valores atípicos en todas las variables numéricas.
+
+```{r barplots, echo=TRUE}
+cat_vars <- descDropout$variable[descDropout$tipo == "categorical"]
+
+for (i in seq_along(cat_vars)) {
+  variable <- cat_vars[i]
+datos_tabla <- as.data.frame(table(datos[, variable]))
+p <- ggplot(datos_tabla, aes(x = Var1, y = Freq)) +
+    geom_col(fill = "#69b3a2") + 
+    theme_minimal() + 
+    theme(
+      legend.position = "none",
+      plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+    ) +
+    ggtitle(variable) +
+    xlab("") +
+    ylab("Frecuencia")
+
+if (i == 2) {
+    p <- p + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+print(p)
+}
+
+```
+
+Las variables Aplication.order y Previous.qualification tienen una distribución muy desigual, con la mayoría de los valores concentrados en una única categoría. No obstante, puesto que hay preguntas que se refieren específicamente a ellas, no se eliminan de la BBDD, para poder realizar un análisis de ellas.
+
+## Práctica 1
+
+### a)
+
+**En ocasiones, es necesario o recomendable que ciertas variables sigan una distribución aproximadamente normal o, al menos, simétrica. En este sentido, ¿se puede asumir la normalidad de la variable Admission.grade? En caso negativo, si es posible, proponed una transformación para conseguir la normalidad.**
+
+Se representa primero la variable, así como su logaritmo, para observar en primer lugar de manera cualitativa si su distribución se asemeja a la normal. No obstante, aún antes de realizar la representación, se puede suponer que no lo será, pues las notas de admisión son no negativas, mientras que la distribución normal toma valores en toda la recta real.
+
+```{r admission, echo=TRUE}
+par(mfrow = c(1,2))
+plot(density(datos$Admission.grade), main = "Variable original", col = "red3", lwd = 2, xlab = "Admission.grade")
+
+plot(density(log(datos$Admission.grade)), main = "Variable transformada", col = "red3", lwd = 2, xlab = "log(Admission.grade)")
+```
+
+Efectivamente, la variable Admission.grade no sigue una distribución normal, y su transformación logarítmica tampoco. Por tanto, no se puede asumir la normalidad de la variable Admission.grade. Puesto que en ocasiones es necesario que una variable se aproxime a una distribución normal, se prueba con una transformación box-cox.
+
+```{r transforma2, echo = TRUE}
+library(MASS)
+x <- datos$Admission.grade
+b <- boxcox(lm(x ~ 1))
+
+# Lambda exacto
+lambda <- b$x[which.max(b$y)] 
+
+# Transformacion
+new_x<- (x ^ lambda - 1) / lambda
+
+plot(density(new_x), main = "Variable transformada", col = "red3", lwd = 2, xlab = "Admsion.grade transformada")
+```
+
+Si bien es cierto que la asimetría queda más corregida, y la distribución se aproxima más a una normal que la original, no se puede asumir que la variable transformada siga una distribución normal, puesto que se puede apreciar cualitativamente la diferencia
+
+### b)
+
+**Proporcionad un resumen descriptivo para las variables Previous.qualification..grade. y Application.order, utilizando las herramientas gráficas y/o numéricas que consideréis más adecuadas en función de la naturaleza de cada variable.**
+
+En el caso de Previous.qualification..grade, se trata de una variable numérica, por lo que se puede representar mediante un histograma y un diagrama de caja y bigotes, así como calcular medidas de tendencia central y dispersión. En cambio, la variable Application.order es categórica ordinal, por lo que se puede representar mediante un gráfico de barras y calcular medidas de tendencia central y dispersión apropiadas para este tipo de variable.
+
+```{r resumen_qualification, echo=TRUE}
+
+par(mfrow = c(1,2))
+hist(datos$Previous.qualification..grade, las = 1, main = "Previous.qualification..grade")
+boxplot(datos$Previous.qualification..grade, las = 1, main = "Previous.qualification..grade")
+
+avg_grade <- mean(datos$Previous.qualification..grade, na.rm = TRUE)
+disp_grade <- sd(datos$Previous.qualification..grade, na.rm = TRUE)
+
+avg_grade
+disp_grade
+
+```
+
+La media obtenida es de 132.7742 y una desviación típica de 14.66561, lo que indica que la variable Previous.qualification..grade tiene una distribución bastante concentrada alrededor de su media, con pocos valores extremos.
+
+```{r resumen_order, echo=TRUE}
+
+barplot(table(datos$Application.order), main = "Application.order")
+avg_order <- mean(as.numeric(datos$Application.order), na.rm = TRUE)
+disp_order <- sd(as.numeric(datos$Application.order), na.rm = TRUE)
+cv_order <- (disp_order / avg_order) * 100
+
+median_order <- median(datos$Application.order, na.rm = TRUE)
+moda_order <- as.numeric(names(sort(table(datos$Application.order), decreasing = TRUE))[1])
+
+
+# --- Coeficiente de asimetría (sesgo de Fisher) ---
+n     <- length(datos$Application.order)
+m3    <- sum((datos$Application.order - avg_order)^3, na.rm = TRUE) / length(datos$Application.order)
+asym_order <- m3 / disp_order^3
+
+
+
+avg_order
+disp_order
+cv_order
+median_order
+moda_order
+asym_order
+```
+
+Por otra parte, la variable Application.order tiene una media de 1.659091 y una desviación típica de 1.413293. No obstante, tanto la mediana como la moda son de 1, el coeficiente de variación es del 85%, y el coeficiente de asimetría de 1.98, lo que indica que la dispersión es alta, y hay una pronunciada asimetría, con una cola hacia la derecha.
