@@ -230,5 +230,6 @@ asym_order
 
 Por otra parte, la variable Application.order tiene una media de 1.659091 y una desviación típica de 1.413293. No obstante, tanto la mediana como la moda son de 1, el coeficiente de variación es del 85%, y el coeficiente de asimetría de 1.98, lo que indica que la dispersión es alta, y hay una pronunciada asimetría, con una cola hacia la derecha.
 
-
 Hola
+
+Hola 2
