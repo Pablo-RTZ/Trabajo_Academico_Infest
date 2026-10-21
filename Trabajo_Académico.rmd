@@ -262,3 +262,4 @@ Vtest
 ```
 
 En este caso, el p-valor es mucho menor que nuestro nivel de significación, por lo que podemos concluir que existe suficiente evidencia muestral para rechazar la propuesta de varianza igual a 595.3646 con un nivel de significación de 0.01. Así, podemos afirmar que la variable Admission.grade tiene una varianza distinta a 595.3646.
+
