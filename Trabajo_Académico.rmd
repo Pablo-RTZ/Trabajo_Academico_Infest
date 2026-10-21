@@ -229,3 +229,36 @@ asym_order
 ```
 
 Por otra parte, la variable Application.order tiene una media de 1.659091 y una desviación típica de 1.413293. No obstante, tanto la mediana como la moda son de 1, el coeficiente de variación es del 85%, y el coeficiente de asimetría de 1.98, lo que indica que la dispersión es alta, y hay una pronunciada asimetría, con una cola hacia la derecha.
+
+## Práctica 2
+
+### a)
+
+Como hemos visto, los datos no siguen una distribución normal. Por tanto,procedemos mediante un contraste de hipótesis asintótico ya que contamos con una muestra suficientemente grande (n=132).
+
+```{r}
+Htest = t.test(datos$Admission.grade, alternative = "two.sided", mu=125.2, 
+               conf.level = 0.99)
+Htest
+```
+
+Por tanto, como el p-valor es mayor que nuestro nivel de significación no tenemos suficiente evidencia estadística para rechazar la hipótesis nula con un nivel de significación de 0.01, luego sí que es admisible una media de 125.2.
+
+```{r}
+Htest$conf.int
+```
+
+El intervalo del confianza al 99% se encuentra entre 122.39 y 130.27. Así, 125.2 se encuentra en este intervalo con un 99% de confianza.
+
+### b)
+
+Como ahora asumimos normalidad en los datos podemos realizar un contraste de hipótesis bilateral para población normal como sigue:
+
+```{r}
+library(EnvStats)
+Vtest = varTest(datos$Admission.grade, alternative = "two.sided", 
+                conf.level = 0.99, sigma.squared=595.3646)
+Vtest
+```
+
+En este caso, el p-valor es mucho menor que nuestro nivel de significación, por lo que podemos concluir que existe suficiente evidencia muestral para rechazar la propuesta de varianza igual a 595.3646 con un nivel de significación de 0.01. Así, podemos afirmar que la variable Admission.grade tiene una varianza distinta a 595.3646.
