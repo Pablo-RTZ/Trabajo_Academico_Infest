@@ -1,6 +1,6 @@
 ---
 title: "Trabajo académico"
-author: "Álvaro Trives Hernandis, Pablo Aleixandre Moreno, Pablo ortiz Badenes y Rubén García Villoldo"
+author: "Álvaro Trives Hernandis, Pablo Aleixandre Moreno, Pablo Ortiz Badenes y Rubén García Villoldo"
 date: "Curso 2026/2027"
 output: 
   html_document:
@@ -178,7 +178,7 @@ new_x<- (x ^ lambda - 1) / lambda
 plot(density(new_x), main = "Variable transformada", col = "red3", lwd = 2, xlab = "Admsion.grade transformada")
 ```
 
-Si bien es cierto que la asimetría queda más corregida, y la distribución se aproxima más a una normal que la original, no se puede asumir que la variable transformada siga una distribución normal, puesto que se puede apreciar cualitativamente la diferencia
+Si bien es cierto que la asimetría queda más corregida, y la distribución se aproxima más a una normal que la original, no se puede asumir que la variable transformada siga una distribución normal, puesto que se puede apreciar cualitativamente la diferencia.
 
 ### b)
 
@@ -269,3 +269,23 @@ Vtest
 
 En este caso, el p-valor es mucho menor que nuestro nivel de significación, por lo que podemos concluir que existe suficiente evidencia muestral para rechazar la propuesta de varianza igual a 595.3646 con un nivel de significación de 0.01. Así, podemos afirmar que la variable Admission.grade tiene una varianza distinta a 595.3646.
 
+### c)
+
+Para la resolución de este apartado, planteamos $H_{0}: p_{A} \leq 0.25$ frente a $H_{1}:p_{A} > 0.25$ siendo $p_{A}=P(Admission.grade>130.46)$ y vemos que
+
+```{r}
+n = length(datos$Admission.grade)
+p_0 = 0.25
+prop_muestral = sum(datos$Admission.grade > 130.46)/n
+
+#Estadistico del contraste
+Z0 = (prop_muestral-p_0)/sqrt((p_0*(1-p_0))/n)
+Z0
+pnorm(q=Z0, lower.tail=FALSE)
+```
+
+Como el p-valor obtenido es significativamente menor al nivel de significación, $\alpha = 1%$ , existe suficiente evidencia muestral para rechazar la hipótesis $H_{0}$ , es decir, la proporción de estudiantes con una nota de admisión superior a $130.46$ es superior al 25%. Si quisiésemos hacerlo de forma exacta
+
+```{r}
+binom.test(x = sum(datos$Admission.grade>130.46), n = n, p = p_0, alternative = "greater", conf.level = 0.99)
+```
