@@ -284,8 +284,19 @@ Z0
 pnorm(q=Z0, lower.tail=FALSE)
 ```
 
-Como el p-valor obtenido es significativamente menor al nivel de significación, $\alpha = 1%$ , existe suficiente evidencia muestral para rechazar la hipótesis $H_{0}$ , es decir, la proporción de estudiantes con una nota de admisión superior a $130.46$ es superior al 25%. Si quisiésemos hacerlo de forma exacta
+Como el p-valor obtenido es significativamente menor al nivel de significación, $\alpha = 1%$ , existe suficiente evidencia muestral para rechazar la hipótesis $H_{0}$ , es decir, la proporción de estudiantes con una nota de admisión superior a $130.46$ es superior al 25%.
+
+Si quisiésemos hacerlo de forma exacta, emplearíamos directamente la distribución binomial del estadístico proporción muestral.
 
 ```{r}
-binom.test(x = sum(datos$Admission.grade>130.46), n = n, p = p_0, alternative = "greater", conf.level = 0.99)
+binom.test(x = sum(datos$Admission.grade>130.46),n,p = p_0, alternative = "greater", conf.level = 0.99)
 ```
+
+Finalmente, calculamos el intervalo de confianza
+
+```{r}
+Ptest_exacto = binom.test(x= sum(datos$Admission.grade>130.46),n,alternative = "greater", p=p_0, conf.level=0.99)
+Ptest_exacto$conf.int
+```
+
+Como el intervalo de confianza, $\alpha=0.05$ , es $[0.2938384,1]$
