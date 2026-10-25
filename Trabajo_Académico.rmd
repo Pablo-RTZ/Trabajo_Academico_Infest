@@ -3,53 +3,47 @@ title: "Trabajo académico"
 author: "Álvaro Trives Hernandis, Pablo Aleixandre Moreno, Pablo Ortiz Badenes y Rubén García Villoldo"
 date: "Curso 2026/2027"
 output: 
-  html_document:
+    pdf_document:
     toc: true
-    number_sections: true
-    toc_depth: 2
-    toc_float:
-      collapsed: false
-      smooth_scroll: true
+    toc_depth: '2'
 ---
 
 ## Importación de datos y descripción de variables
 
-Se importan las variables necesarias para el análisis, y se muestran las primeras 3 filas para comprobar que se han cargado correctamente.
+Se importan los datos y se clasifican las variables según su tipo para aplicar en cada caso los resúmenes y gráficos adecuados.
 
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
-#setwd("~/Desktop/Universidad/INFEST/Trabajo académico")
 ```
 
-```{r datos, echo=TRUE}
+```{r datos, include=FALSE}
 
-datos = read.table("AbandoEst_10.txt", header=TRUE, as.is = TRUE)
+datos <- read.table("AbandoEst_10.txt", header = TRUE, as.is = TRUE)
 dim(datos)
 head(datos, 3)  # mostrar las primeras 3 observaciones de la BBDD
 ```
 
-Se especifica el tipo para cada variable, y se muestra un resumen de las mismas.
 
-```{r tipos, echo = TRUE}
-descDropout = data.frame("variable" = colnames(datos),
-                         "tipo" = c("binary", rep("categorical",2), "binary", "categorical", "numerical", rep("categorical",4), "numerical", rep("binary",6), "numerical", "binary", rep("numerical",8), "categorical"), stringsAsFactor = FALSE)
+```{r tipos, include=FALSE}
+descDropout <- data.frame("variable" = colnames(datos),
+                         "tipo" = c("binary", rep("categorical",2), "binary", "categorical", "numerical", rep("categorical",4), "numerical", rep("binary",6), "numerical", "binary", rep("numerical",8), "categorical"), stringsAsFactor = FALSE) # Clasificar variables
 
-rownames(descDropout) = descDropout$variable
+rownames(descDropout) <- descDropout$variable
 descDropout
 ```
 
-## Resumen de variables y coeficientes de variación
+## Limpieza inicial de la BBDD
 
-Se hace un resumen de las variables numéricas, binarias y categóricas, y calcula el coeficiente de variación para las variables numéricas,y se muestran las tablas de frecuencia para las variables binarias y categóricas.
+Se revisaron la variabilidad y las distribuciones de las variables para detectar variables prácticamente constantes y valores atípicos.
 
-```{r resumen, echo=TRUE}
+```{r resumen, include=FALSE}
 
 summary(datos[,descDropout$variable[descDropout$tipo == "numerical"]])
 
-mySD = apply(datos[,descDropout$variable[descDropout$tipo == "numerical"]], 2, sd)
-myMU = colMeans(datos[,descDropout$variable[descDropout$tipo == "numerical"]])
-myCV = mySD/myMU
+mySD <- apply(datos[,descDropout$variable[descDropout$tipo == "numerical"]], 2, sd)
+myMU <- colMeans(datos[, descDropout$variable[descDropout$tipo == "numerical"]])
+myCV <- mySD / myMU
 sort(myCV)
 
 apply(datos[,descDropout$variable[descDropout$tipo == "binary"]], 2, table, useNA = "i")
@@ -57,24 +51,21 @@ apply(datos[,descDropout$variable[descDropout$tipo == "binary"]], 2, table, useN
 apply(datos[,descDropout$variable[descDropout$tipo == "categorical"]], 2, table, useNA = "i")
 
 apply(datos[,descDropout$variable[descDropout$tipo == "categorical"]], 2,
-      function (x) round(100*table(x)/sum(table(x)), 2))
+      function(x) round(100 * table(x) / sum(table(x)), 2))
 ```
 
-Podemos apreciar que no hay ninguna variable con un coeficiente de variación 0, sugiriendo que no hay variables constantes. Por otra parte, la variable Educational.special.needs tiene tan solo una muestra con valor 1, luego se puede eliminar pues se toma como casi constante, ya que no se podrán extraer conclusiones a partir de ella.
+No se detectaron variables numéricas constantes. De entre las variables categóricas, se eliminó `Educational.special.needs` porque solo una observación presenta el valor 1, por lo que se considera prácticamente constante y no permitiría obtener conclusiones fiables.
 
-## Eliminación de variables y datos anómalos
+```{r eliminar, include=FALSE}
 
-```{r eliminar, echo=TRUE}
-
-datos = datos[,setdiff(colnames(datos), "Educational.special.needs")]
-descDropout = descDropout[colnames(datos),]
+datos <- datos[,setdiff(colnames(datos), "Educational.special.needs")]
+descDropout <- descDropout[colnames(datos),]
 
 ```
 
-```{r boxplots, echo=TRUE}
+```{r boxplots, include=FALSE}
 
 num_vars <- descDropout$variable[descDropout$tipo == "numerical"]
-# boxplot(datos[, num_vars[1:2]], las = 1, main = "Boxplot numéricas (grupo 1)")
 
 library(ggplot2)
 datos_grupo1 <- stack(datos[, num_vars[1:2]])
@@ -87,7 +78,6 @@ ggplot(datos_grupo1, aes(x = ind, y = values)) +
   ggtitle("Boxplot numéricas (grupo 1)") +
   xlab("") +
   ylab("Valor")
-#boxplot(datos[, num_vars[c(3,5)]], names = num_vars[c(3,5)], main = "Boxplot numéricas (grupo 2)")
 
 datos_grupo2 <- stack(datos[, num_vars[c(3,5)]])
 ggplot(datos_grupo2, aes(x = ind, y = values)) +
@@ -101,8 +91,6 @@ ggplot(datos_grupo2, aes(x = ind, y = values)) +
   ylab("Valor")
 
 par(mar = c(10, 3, 2, 2)) # Se deja más márgen para los nombres
-# boxplot(datos[, num_vars[-(c(1:3,5))]], las = 2, cex.axis = 0.6, main = "Boxplot numéricas (grupo 3)")
-
 
 datos_grupo3 <- stack(datos[, num_vars[-(c(1:3,5))]])
 ggplot(datos_grupo3, aes(x = ind, y = values)) +
@@ -117,17 +105,17 @@ ggplot(datos_grupo3, aes(x = ind, y = values)) +
   ylab("Valor")
 ```
 
-Puesto que las variables numéricas tienen rangos muy distintos, se representan en tres diagramas de caja y bigotes distintos, para que los ejes se vean correctamente, y se observa que hay valores atípicos en todas las variables numéricas.
+Los diagramas exploratorios muestran valores atípicos en las variables numéricas. No obstante, se conservan por que la existencia de datos atípicos no justifica directamente su eliminación o interpolación.
 
-```{r barplots, echo=TRUE}
+```{r barplots, include=FALSE}
 cat_vars <- descDropout$variable[descDropout$tipo == "categorical"]
 
 for (i in seq_along(cat_vars)) {
   variable <- cat_vars[i]
-datos_tabla <- as.data.frame(table(datos[, variable]))
-p <- ggplot(datos_tabla, aes(x = Var1, y = Freq)) +
-    geom_col(fill = "#69b3a2") + 
-    theme_minimal() + 
+  datos_tabla <- as.data.frame(table(datos[, variable]))
+  p <- ggplot(datos_tabla, aes(x = Var1, y = Freq)) +
+    geom_col(fill = "#69b3a2") +
+    theme_minimal() +
     theme(
       legend.position = "none",
       plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
@@ -136,16 +124,16 @@ p <- ggplot(datos_tabla, aes(x = Var1, y = Freq)) +
     xlab("") +
     ylab("Frecuencia")
 
-if (i == 2) {
+  if (i == 2) {
     p <- p + theme(axis.text.x = element_text(angle = 45, hjust = 1))
-}
+  }
 
-print(p)
+  print(p)
 }
 
 ```
 
-Las variables Aplication.order y Previous.qualification tienen una distribución muy desigual, con la mayoría de los valores concentrados en una única categoría. No obstante, puesto que hay preguntas que se refieren específicamente a ellas, no se eliminan de la BBDD, para poder realizar un análisis de ellas.
+`Application.order` y `Previous.qualification` presentan distribuciones muy desiguales. No obstante, se mantienen porque son necesarias para responder a preguntas posteriores de la práctica.
 
 ## Práctica 1
 
@@ -157,25 +145,29 @@ Se representa primero la variable, así como su logaritmo, para observar en prim
 
 ```{r admission, echo=TRUE}
 par(mfrow = c(1,2))
-plot(density(datos$Admission.grade), main = "Variable original", col = "red3", lwd = 2, xlab = "Admission.grade")
+plot(density(datos$Admission.grade), main = "Variable original", col = "red3",
+     lwd = 2, xlab = "Admission.grade")
 
-plot(density(log(datos$Admission.grade)), main = "Variable transformada", col = "red3", lwd = 2, xlab = "log(Admission.grade)")
+plot(density(log(datos$Admission.grade)), main = "Variable transformada",
+     col = "red3", lwd = 2, xlab = "log(Admission.grade)")
 ```
 
 Efectivamente, la variable Admission.grade no sigue una distribución normal, y su transformación logarítmica tampoco. Por tanto, no se puede asumir la normalidad de la variable Admission.grade. Puesto que en ocasiones es necesario que una variable se aproxime a una distribución normal, se prueba con una transformación box-cox.
 
 ```{r transforma2, echo = TRUE}
+
 library(MASS)
 x <- datos$Admission.grade
 b <- boxcox(lm(x ~ 1))
 
 # Lambda exacto
-lambda <- b$x[which.max(b$y)] 
+lambda <- b$x[which.max(b$y)]
 
 # Transformacion
-new_x<- (x ^ lambda - 1) / lambda
+new_x <- (x ^ lambda - 1) / lambda
 
-plot(density(new_x), main = "Variable transformada", col = "red3", lwd = 2, xlab = "Admsion.grade transformada")
+plot(density(new_x), main = "Variable transformada", col = "red3", lwd = 2,
+     xlab = "Admsion.grade transformada")
 ```
 
 Si bien es cierto que la asimetría queda más corregida, y la distribución se aproxima más a una normal que la original, no se puede asumir que la variable transformada siga una distribución normal, puesto que se puede apreciar cualitativamente la diferencia.
@@ -188,16 +180,18 @@ En el caso de Previous.qualification..grade, se trata de una variable numérica,
 
 ```{r resumen_qualification, echo=TRUE}
 
-par(mfrow = c(1,2))
-hist(datos$Previous.qualification..grade, las = 1, main = "Previous.qualification..grade")
-boxplot(datos$Previous.qualification..grade, las = 1, main = "Previous.qualification..grade")
+par(mfrow = c(1, 2))
+hist(datos$Previous.qualification..grade, las = 1,
+     main = "Previous.qualification..grade")
+
+boxplot(datos$Previous.qualification..grade, las = 1,
+        main = "Previous.qualification..grade")
 
 avg_grade <- mean(datos$Previous.qualification..grade, na.rm = TRUE)
-disp_grade <- sd(datos$Previous.qualification..grade, na.rm = TRUE)
+sd_grade <- sd(datos$Previous.qualification..grade, na.rm = TRUE)
 
 avg_grade
-disp_grade
-
+sd_grade
 ```
 
 La media obtenida es de 132.7742 y una desviación típica de 14.66561, lo que indica que la variable Previous.qualification..grade tiene una distribución bastante concentrada alrededor de su media, con pocos valores extremos.
@@ -206,22 +200,21 @@ La media obtenida es de 132.7742 y una desviación típica de 14.66561, lo que i
 
 barplot(table(datos$Application.order), main = "Application.order")
 avg_order <- mean(as.numeric(datos$Application.order), na.rm = TRUE)
-disp_order <- sd(as.numeric(datos$Application.order), na.rm = TRUE)
-cv_order <- (disp_order / avg_order) * 100
+sd_order <- sd(as.numeric(datos$Application.order), na.rm = TRUE)
+cv_order <- (sd_order / avg_order) * 100
 
 median_order <- median(datos$Application.order, na.rm = TRUE)
-moda_order <- as.numeric(names(sort(table(datos$Application.order), decreasing = TRUE))[1])
-
+moda_order <- as.numeric(names(sort(table(datos$Application.order),
+                                    decreasing = TRUE))[1])
 
 # --- Coeficiente de asimetría (sesgo de Fisher) ---
-n     <- length(datos$Application.order)
-m3    <- sum((datos$Application.order - avg_order)^3, na.rm = TRUE) / length(datos$Application.order)
-asym_order <- m3 / disp_order^3
-
-
+n <- length(datos$Application.order)
+m3 <- sum((datos$Application.order - avg_order)^3, na.rm = TRUE) /
+  length(datos$Application.order)
+asym_order <- m3 / sd_order^3
 
 avg_order
-disp_order
+sd_order
 cv_order
 median_order
 moda_order
@@ -235,6 +228,7 @@ Por otra parte, la variable Application.order tiene una media de 1.659091 y una 
 ### a)
 
 ```{r}
+
 shapiro.test(datos$Admission.grade)
 ```
 
@@ -243,14 +237,16 @@ Como el p-valor es tan pequeño, existe evidencia muestral para rechazar la hip�
 Como hemos visto, los datos no siguen una distribución normal. Por tanto,procedemos mediante un contraste de hipótesis asintótico ya que contamos con una muestra suficientemente grande (n=132).
 
 ```{r}
-Htest = t.test(datos$Admission.grade, alternative = "two.sided", mu=125.2, 
-               conf.level = 0.99)
+
+Htest <- t.test(datos$Admission.grade, alternative = "two.sided", mu = 125.2,
+                conf.level = 0.99)
 Htest
 ```
 
 Por tanto, como el p-valor es mayor que nuestro nivel de significación no tenemos suficiente evidencia estadística para rechazar la hipótesis nula con un nivel de significación de 0.01, luego sí que es admisible una media de 125.2.
 
 ```{r}
+
 Htest$conf.int
 ```
 
@@ -261,9 +257,10 @@ El intervalo del confianza al 99% se encuentra entre 122.39 y 130.27. Así, 125.
 Como ahora asumimos normalidad en los datos podemos realizar un contraste de hipótesis bilateral para población normal como sigue:
 
 ```{r}
+
 library(EnvStats)
-Vtest = varTest(datos$Admission.grade, alternative = "two.sided", 
-                conf.level = 0.99, sigma.squared=595.3646)
+Vtest <- varTest(datos$Admission.grade, alternative = "two.sided",
+                 conf.level = 0.99, sigma.squared = 595.3646)
 Vtest
 ```
 
@@ -274,28 +271,32 @@ En este caso, el p-valor es mucho menor que nuestro nivel de significación, por
 Para la resolución de este apartado, planteamos $H_{0}: p_{A} \leq 0.25$ frente a $H_{1}:p_{A} > 0.25$ siendo $p_{A}=P(Admission.grade>130.46)$ y vemos que
 
 ```{r}
-n = length(datos$Admission.grade)
-p_0 = 0.25
-prop_muestral = sum(datos$Admission.grade > 130.46)/n
+
+n <- length(datos$Admission.grade)
+p_0 <- 0.25
+prop_muestral <- sum(datos$Admission.grade > 130.46) / n
 
 #Estadistico del contraste
-Z0 = (prop_muestral-p_0)/sqrt((p_0*(1-p_0))/n)
+Z0 <- (prop_muestral - p_0)/sqrt((p_0 * (1 - p_0)) / n)
 Z0
-pnorm(q=Z0, lower.tail=FALSE)
+pnorm(q = Z0, lower.tail = FALSE)
 ```
 
-Como el p-valor obtenido es significativamente menor al nivel de significación, $\alpha = 1%$ , existe suficiente evidencia muestral para rechazar la hipótesis $H_{0}$ , es decir, la proporción de estudiantes con una nota de admisión superior a $130.46$ es superior al 25%.
+Como el p-valor obtenido es significativamente menor al nivel de significación, $\alpha = 1\%$ , existe suficiente evidencia muestral para rechazar la hipótesis $H_{0}$ , es decir, la proporción de estudiantes con una nota de admisión superior a $130.46$ es superior al 25%.
 
 Si quisiésemos hacerlo de forma exacta, emplearíamos directamente la distribución binomial del estadístico proporción muestral.
 
 ```{r}
-binom.test(x = sum(datos$Admission.grade>130.46),n,p = p_0, alternative = "greater", conf.level = 0.99)
+
+binom.test(x = sum(datos$Admission.grade>130.46),n,p = p_0,
+           alternative = "greater", conf.level = 0.99)
 ```
 
 Finalmente, calculamos el intervalo de confianza
 
 ```{r}
-Ptest_exacto = binom.test(x= sum(datos$Admission.grade>130.46),n,alternative = "greater", p=p_0, conf.level=0.99)
+Ptest_exacto <- binom.test(x = sum(datos$Admission.grade>130.46), n,
+                           alternative = "greater", p = p_0, conf.level = 0.99)
 Ptest_exacto$conf.int
 ```
 
