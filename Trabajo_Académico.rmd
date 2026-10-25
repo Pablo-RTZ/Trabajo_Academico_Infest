@@ -255,9 +255,13 @@ El intervalo del confianza al 99% se encuentra entre 122.39 y 130.27. Así, 125.
 
 Como ahora asumimos normalidad en los datos podemos realizar un contraste de hipótesis bilateral para población normal como sigue:
 
-```{r}
+```{r, include=FALSE}
 
 library(EnvStats)
+```
+
+```{r}
+
 Vtest <- varTest(datos$Admission.grade, alternative = "two.sided",
                  conf.level = 0.99, sigma.squared = 595.3646)
 Vtest
