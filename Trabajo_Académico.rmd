@@ -26,8 +26,7 @@ head(datos, 3)  # mostrar las primeras 3 observaciones de la BBDD
 
 
 ```{r tipos, include=FALSE}
-descDropout <- data.frame("variable" = colnames(datos),
-                         "tipo" = c("binary", rep("categorical",2), "binary", "categorical", "numerical", rep("categorical",4), "numerical", rep("binary",6), "numerical", "binary", rep("numerical",8), "categorical"), stringsAsFactor = FALSE) # Clasificar variables
+descDropout <- data.frame("variable" = colnames(datos), "tipo" = c("binary", rep("categorical",2), "binary", "categorical", "numerical", rep("categorical",4), "numerical", rep("binary",6), "numerical", "binary", rep("numerical",8), "categorical"), stringsAsFactor = FALSE) # Clasificar variables
 
 rownames(descDropout) <- descDropout$variable
 descDropout
@@ -300,4 +299,4 @@ Ptest_exacto <- binom.test(x = sum(datos$Admission.grade>130.46), n,
 Ptest_exacto$conf.int
 ```
 
-Como el intervalo de confianza, $\alpha=0.05$ , es $[0.2938384,1]$
+Como el intervalo de confianza para $\alpha=0.01$, es $[0.2678988,1]$, se puede afirmar con un 99% de confianza que la proporción de estudiantes con una nota de admisión superior a $130.46$ es superior al 25%.
