@@ -24,7 +24,6 @@ dim(datos)
 head(datos, 3)  # mostrar las primeras 3 observaciones de la BBDD
 ```
 
-
 ```{r tipos, include=FALSE}
 descDropout <- data.frame("variable" = colnames(datos), "tipo" = c("binary", rep("categorical",2), "binary", "categorical", "numerical", rep("categorical",4), "numerical", rep("binary",6), "numerical", "binary", rep("numerical",8), "categorical"), stringsAsFactor = FALSE) # Clasificar variables
 
@@ -222,7 +221,7 @@ asym_order
 
 Por otra parte, la variable Application.order tiene una media de 1.659091 y una desviación típica de 1.413293. No obstante, tanto la mediana como la moda son de 1, el coeficiente de variación es del 85%, y el coeficiente de asimetría de 1.98, lo que indica que la dispersión es alta, y hay una pronunciada asimetría, con una cola hacia la derecha.
 
-## Práctica 2
+## Práctica 2-3
 
 ### a)
 
@@ -304,3 +303,88 @@ Ptest_exacto$conf.int
 ```
 
 Como el intervalo de confianza para $\alpha=0.01$, es $[0.2678988,1]$, se puede afirmar con un 99% de confianza que la proporción de estudiantes con una nota de admisión superior a $130.46$ es superior al 25%.
+
+## Práctica 4
+
+### a)
+
+**Para el nivel de significación indicado, ¿se puede afirmar que la media de la variable Curricular.units.1st.sem..grade. para las chicas es igual que para los chicos? Comprobad si se cumplen los requisitos necesarios para aplicar el test elegido. Calculad la potencia del test estadístico aplicado para detectar una diferencia entre las medias de 2.0305.**
+
+Las muestras son independientes (una nota corresponde a una estudiante o estudiante distinto). Aunque ambos grupos son suficientemente grandes para aplicar un test asintótico, contrastamos también la normalidad y la igualdad de varianzas.
+
+```{r}
+chicas <- datos$Curricular.units.1st.sem..grade.[datos$Gender == 0]
+chicos <- datos$Curricular.units.1st.sem..grade.[datos$Gender == 1]
+
+shapiro.test(chicas)
+shapiro.test(chicos)
+
+library(lawstat)
+levene.test(datos$Curricular.units.1st.sem..grade.,
+            datos$Gender, location = "median")
+```
+
+Los test de Shapiro-Wilk rechazan la normalidad en ambos grupos. No obstante, los tamaños muestrales son elevados y el test robusto de Levene indica varianzas distintas (p-valor = 0.03838). Por ello, usamos un test bilateral de Welch para medias con varianzas desiguales.
+
+```{r}
+ttest_genero <- t.test(
+  datos$Curricular.units.1st.sem..grade. ~ datos$Gender,
+  alternative = "two.sided", var.equal = FALSE, conf.level = 0.95
+)
+ttest_genero
+```
+
+Con un nivel del 5%, no se puede rechazar la igualdad de medias (p-valor = 0.06717). Las medias muestrales son 10.58774 para las chicas y 8.74165 para los chicos.
+
+La potencia se calcula de forma conservadora con el tamaño del grupo pequeño y la mayor desviación típica.
+
+```{r}
+power.t.test(
+  n = min(length(chicas), length(chicos)),
+  delta = 2.0305,
+  sd = max(sd(chicas), sd(chicos)),
+  sig.level = 0.05,
+  type = "two.sample",
+  alternative = "two.sided"
+)
+```
+
+Para detectar una diferencia de 2.0305, la potencia es aproximadamente 0.382.
+
+### b)
+
+**Cuando comparamos los dos semestres, ¿podemos afirmar que el promedio de Curricular.units.1st.sem..enrolled. es superior al promedio de Curricular.units.2nd.sem..enrolled.? Calculad un intervalo de confianza para la diferencia media.**
+
+Las medidas están apareadas: cada estudiante aporta un valor en ambos semestres. Por ello, analizamos la diferencia primer semestre menos segundo semestre mediante un test $t$ apareado unilateral. Como hay 132 parejas, el test puede aplicarse aunque la diferencia no sea normal.
+
+```{r}
+t_pareado <- t.test(
+  datos$Curricular.units.1st.sem..enrolled.,
+  datos$Curricular.units.2nd.sem..enrolled.,
+  paired = TRUE, alternative = "greater", conf.level = 0.95
+)
+t_pareado
+```
+
+El p-valor es 0.001381, por lo que se rechaza la igualdad de promedios con un nivel del 5% y se concluye que el promedio matriculado en el primer semestre es superior. La diferencia media muestral es 0.2575758 asignaturas.
+
+```{r}
+t_pareado_bilateral <- t.test(
+  datos$Curricular.units.1st.sem..enrolled.,
+  datos$Curricular.units.2nd.sem..enrolled.,
+  paired = TRUE, alternative = "two.sided", conf.level = 0.95
+)
+t_pareado_bilateral$conf.int
+```
+
+El intervalo de confianza al 95% para la diferencia media es [0.09057, 0.42458].
+
+## Práctica 6
+
+### a)
+
+**Para el nivel de significación indicado, ¿se puede afirmar que la proporción de estudiantes con un valor de Curricular.units.2nd.sem..approved. mayor que 1 es inferior en las chicas que en los chicos? Indicad qué métodos se podrían aplicar para resolver este contraste y, en caso de que haya más de uno, justificad vuestra elección.**
+
+### b)
+
+**Estudiad la relación entre las variables Tuition.fees.up.to.date y Application.order justificando el método elegido. Indicad qué tipo de test habéis aplicado (proporciones, independencia, homogeneidad,…) y qué conclusiones obtenéis. Calculad, si es posible, el grado de relación con un parámetro adecuado.**
