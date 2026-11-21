@@ -379,11 +379,48 @@ t_pareado_bilateral$conf.int
 
 El intervalo de confianza al 95% para la diferencia media es [0.09057, 0.42458].
 
+
 ## Práctica 6
 
 ### a)
 
 **Para el nivel de significación indicado, ¿se puede afirmar que la proporción de estudiantes con un valor de Curricular.units.2nd.sem..approved. mayor que 1 es inferior en las chicas que en los chicos? Indicad qué métodos se podrían aplicar para resolver este contraste y, en caso de que haya más de uno, justificad vuestra elección.**
+```{r}
+cumple <- datos$Curricular.units.2nd.sem..approved. > 1
+
+#tabla de contingencia 
+tabla_p6 <- table(Sexo = datos$Gender, Cumple = cumple)
+tabla_p6
+
+
+prop.table(tabla_p6, margin = 1) 
+
+chisq.test(tabla_p6)$expected
+```
+
+Para resolver el contraste de comparación de dos proporciones independientes (chicas vs. chicos) con hipótesis unilateral podemos usar: el contraste asintótico de dos proporciones y el test exacto de Fisher. Elegimos el contraste asintótico de dos proporciones. La razón es que disponemos de un tamaño muestral suficientemente grande (n=132) y, al comprobar las frecuencias esperadas de la tabla de contingencia, todas son mayores a 5. Al cumplirse esta condición, la aproximación a la normal es válida, por lo que este test es perfectamente fiable y tiene mayor potencia que el test de Fisher.
+
+
+```{r}
+
+# H1 = p_chicas < p_chicos
+# Usamos la columna 2 (los que cumplen TRUE) como éxitos
+test_p6 <- prop.test(x = tabla_p6[, 2], 
+                     n = rowSums(tabla_p6), 
+                     alternative = "less", 
+                     correct = FALSE)
+test_p6
+
+
+test_p6$conf.int
+
+
+```
+Los resultados muestran que la proporción muestral de éxito en el primer grupo (chicas) es de 0.7882, mientras que en el segundo grupo (chicos) es de 0.5319. El estadístico de contraste es igual a 9.4148 y el p-valor obtenido es 0.9989.
+
+Dado que el p-valor es muy superior al nivel de significación, no se rechaza la hipótesis nula. Por tanto, no se puede afirmar que la proporción de chicas sea inferior a la de chicos.
+
+El intervalo de confianza al 95% para la diferencia de proporciones (chicas - chicos) es [-1.0000, 0.3964]. Como el 0 está incluido en el intervalo, se confirma que no hay diferencia significativa que permita afirmar que las chicas tengan una proporción inferior.
 
 ### b)
 
