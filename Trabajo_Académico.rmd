@@ -379,12 +379,12 @@ t_pareado_bilateral$conf.int
 
 El intervalo de confianza al 95% para la diferencia media es [0.09057, 0.42458].
 
-
 ## Práctica 6
 
 ### a)
 
 **Para el nivel de significación indicado, ¿se puede afirmar que la proporción de estudiantes con un valor de Curricular.units.2nd.sem..approved. mayor que 1 es inferior en las chicas que en los chicos? Indicad qué métodos se podrían aplicar para resolver este contraste y, en caso de que haya más de uno, justificad vuestra elección.**
+
 ```{r}
 cumple <- datos$Curricular.units.2nd.sem..approved. > 1
 
@@ -399,7 +399,6 @@ chisq.test(tabla_p6)$expected
 ```
 
 Para resolver el contraste de comparación de dos proporciones independientes (chicas vs. chicos) con hipótesis unilateral podemos usar: el contraste asintótico de dos proporciones y el test exacto de Fisher. Elegimos el contraste asintótico de dos proporciones. La razón es que disponemos de un tamaño muestral suficientemente grande (n=132) y, al comprobar las frecuencias esperadas de la tabla de contingencia, todas son mayores a 5. Al cumplirse esta condición, la aproximación a la normal es válida, por lo que este test es perfectamente fiable y tiene mayor potencia que el test de Fisher.
-
 
 ```{r}
 
@@ -416,6 +415,7 @@ test_p6$conf.int
 
 
 ```
+
 Los resultados muestran que la proporción muestral de éxito en el primer grupo (chicas) es de 0.7882, mientras que en el segundo grupo (chicos) es de 0.5319. El estadístico de contraste es igual a 9.4148 y el p-valor obtenido es 0.9989.
 
 Dado que el p-valor es muy superior al nivel de significación, no se rechaza la hipótesis nula. Por tanto, no se puede afirmar que la proporción de chicas sea inferior a la de chicos.
@@ -425,3 +425,35 @@ El intervalo de confianza al 95% para la diferencia de proporciones (chicas - ch
 ### b)
 
 **Estudiad la relación entre las variables Tuition.fees.up.to.date y Application.order justificando el método elegido. Indicad qué tipo de test habéis aplicado (proporciones, independencia, homogeneidad,…) y qué conclusiones obtenéis. Calculad, si es posible, el grado de relación con un parámetro adecuado.**
+
+```{r}
+tabla_p6b <- table(Matricula_al_dia = datos$Tuition.fees.up.to.date,
+                   Orden_solicitud = datos$Application.order)
+tabla_p6b
+
+prop.table(tabla_p6b, margin = 2)
+
+chisq.test(tabla_p6b)$expected
+```
+
+Para estudiar la relación entre Tuition.fees.up.to.date (variable binaria: 0 = pagos no al día, 1 = pagos al día) y Application.order (variable categórica con 5 niveles observados en la muestra: 1, 3, 4, 5 y 6) aplicamos un contraste de independencia. Se trata de un test de independencia, y no de homogeneidad ni de comparación de dos proporciones, porque partimos de una única muestra aleatoria de n=132 estudiantes en la que se observan simultáneamente dos variables categóricas sin haber fijado previamente los totales de fila o columna, y una de las variables tiene más de dos categorías.
+
+Para resolver este contraste podemos aplicar el test chi-cuadrado de Pearson de independencia (método asintótico) y el test exacto de Fisher. Elegimos el test exacto de Fisher. La razón es que, al comprobar las frecuencias esperadas de la tabla de contingencia, 7 de las 10 celdas (el 70%) presentan valores inferiores a 5 (e incluso dos de ellas son menores que 1, con valor 0.9848). Al no cumplirse las condiciones necesarias para la aproximación asintótica a la distribución chi-cuadrado, el test exacto de Fisher resulta el método más adecuado y fiable.
+
+```{r}
+test_p6b <- fisher.test(tabla_p6b)
+test_p6b
+
+chi2_p6b <- suppressWarnings(as.numeric(chisq.test(tabla_p6b)$statistic))
+n_p6b <- sum(tabla_p6b)
+k_p6b <- min(nrow(tabla_p6b) - 1, ncol(tabla_p6b) - 1)
+
+v_cramer <- sqrt(chi2_p6b / (n_p6b * k_p6b))
+v_cramer
+```
+
+En la tabla de contingencia se observa que la proporción muestral de estudiantes con la matrícula al día (1) es muy similar en todos los órdenes de solicitud: 0.7905 en primera opción, 0.8182 en tercera, 1.0000 en cuarta, 0.8000 en quinta y 0.8333 en sexta. Al aplicar el test exacto de Fisher se obtiene un p-valor igual a 0.9782.
+
+Dado que el p-valor es muy superior al nivel de significación, no se rechaza la hipótesis nula de independencia. Por tanto, no se puede afirmar que exista relación entre tener la matrícula al día y el orden de preferencia en la solicitud.
+
+Para medir el grado de relación entre ambas variables, al tratarse de una tabla 2x5 (mayor que 2x2), calculamos el coeficiente V de Cramér. El valor obtenido es 0.1023, un valor muy cercano a 0 que confirma que la relación entre ambas variables es prácticamente nula.
