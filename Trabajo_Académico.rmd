@@ -162,7 +162,7 @@ for (i in seq_along(cat_vars)) {
 
 **En ocasiones, es necesario o recomendable que ciertas variables sigan una distribución aproximadamente normal o, al menos, simétrica. En este sentido, ¿se puede asumir la normalidad de la variable Admission.grade? En caso negativo, si es posible, proponed una transformación para conseguir la normalidad.**
 
-Se representa primero la variable, así como su logaritmo, para observar en primer lugar de manera cualitativa si su distribución se asemeja a la normal. No obstante, aún antes de realizar la representación, se puede suponer que no lo será, pues las notas de admisión son no negativas, mientras que la distribución normal toma valores en toda la recta real.
+Se representa primero la variable, así como su logaritmo, para observar en primer lugar de manera cualitativa si su distribución se asemeja a la normal.
 
 ```{r admission, echo=TRUE}
 par(mfrow = c(1,2))
@@ -333,7 +333,7 @@ Como el intervalo de confianza para $\alpha=0.01$, es $[0.2678988,1]$, se puede 
 
 **Para el nivel de significación indicado, ¿se puede afirmar que la media de la variable Curricular.units.1st.sem..grade. para las chicas es igual que para los chicos? Comprobad si se cumplen los requisitos necesarios para aplicar el test elegido. Calculad la potencia del test estadístico aplicado para detectar una diferencia entre las medias de 2.0305.**
 
-Las muestras son independientes (una nota corresponde a una estudiante o estudiante distinto). Aunque ambos grupos son suficientemente grandes para aplicar un test asintótico, contrastamos también la normalidad y la igualdad de varianzas.
+Las muestras son independientes (una nota corresponde a una estudiante o estudiante distinto). Aunque ambos grupos son suficientemente grandes para aplicar un test asintótico, hemos de contrastar la normalidad y la igualdad de varianzas.
 
 ```{r}
 chicas <- datos$Curricular.units.1st.sem..grade.[datos$Gender == 0]
@@ -347,7 +347,7 @@ levene.test(datos$Curricular.units.1st.sem..grade.,
             datos$Gender, location = "median")
 ```
 
-Los test de Shapiro-Wilk rechazan la normalidad en ambos grupos. No obstante, los tamaños muestrales son elevados y el test robusto de Levene indica varianzas distintas (p-valor = 0.03838). Por ello, usamos un test bilateral de Welch para medias con varianzas desiguales.
+Los test de Shapiro-Wilk rechazan la normalidad en ambos grupos. No obstante, los tamaños muestrales son elevados y el test robusto de Levene, robusto ante el incumplimiento de normalidad, indica varianzas distintas (p-valor = 0.03838). Por ello, usamos un test bilateral de Welch para varianzas desiguales con el objetivo de comparar las medias.
 
 ```{r}
 ttest_genero <- t.test(
