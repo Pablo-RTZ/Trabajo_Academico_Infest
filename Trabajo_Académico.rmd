@@ -25,7 +25,16 @@ head(datos, 3)  # mostrar las primeras 3 observaciones de la BBDD
 ```
 
 ```{r tipos, include=FALSE}
-descDropout <- data.frame("variable" = colnames(datos), "tipo" = c("binary", rep("categorical",2), "binary", "categorical", "numerical", rep("categorical",4), "numerical", rep("binary",6), "numerical", "binary", rep("numerical",8), "categorical"), stringsAsFactor = FALSE) # Clasificar variables
+descDropout <- data.frame(
+  "variable" = colnames(datos),
+  "tipo" = c(
+    "binary", rep("categorical", 2), "binary", "categorical",
+    "numerical", rep("categorical", 4), "numerical",
+    rep("binary", 6), "numerical", "binary",
+    rep("numerical", 8), "categorical"
+  ),
+  stringsAsFactor = FALSE
+)  # Clasificar variables
 
 rownames(descDropout) <- descDropout$variable
 descDropout
@@ -39,14 +48,28 @@ Se revisaron la variabilidad y las distribuciones de las variables para detectar
 
 summary(datos[,descDropout$variable[descDropout$tipo == "numerical"]])
 
-mySD <- apply(datos[,descDropout$variable[descDropout$tipo == "numerical"]], 2, sd)
+mySD <- apply(
+  datos[, descDropout$variable[descDropout$tipo == "numerical"]],
+  2,
+  sd
+)
 myMU <- colMeans(datos[, descDropout$variable[descDropout$tipo == "numerical"]])
 myCV <- mySD / myMU
 sort(myCV)
 
-apply(datos[,descDropout$variable[descDropout$tipo == "binary"]], 2, table, useNA = "i")
+apply(
+  datos[, descDropout$variable[descDropout$tipo == "binary"]],
+  2,
+  table,
+  useNA = "i"
+)
 
-apply(datos[,descDropout$variable[descDropout$tipo == "categorical"]], 2, table, useNA = "i")
+apply(
+  datos[, descDropout$variable[descDropout$tipo == "categorical"]],
+  2,
+  table,
+  useNA = "i"
+)
 
 apply(datos[,descDropout$variable[descDropout$tipo == "categorical"]], 2,
       function(x) round(100 * table(x) / sum(table(x)), 2))
