@@ -352,12 +352,12 @@ Los test de Shapiro-Wilk rechazan la normalidad en ambos grupos. No obstante, lo
 ```{r}
 ttest_genero <- t.test(
   datos$Curricular.units.1st.sem..grade. ~ datos$Gender,
-  alternative = "two.sided", var.equal = FALSE, conf.level = 0.95
+  alternative = "two.sided", var.equal = FALSE, conf.level = 0.99
 )
 ttest_genero
 ```
 
-Con un nivel del 5%, no se puede rechazar la igualdad de medias (p-valor = 0.06717). Las medias muestrales son 10.58774 para las chicas y 8.74165 para los chicos.
+Con un nivel del 1%, no se puede rechazar la igualdad de medias (p-valor = 0.06717). El intervalo de confianza al 99% es [-0.779315, 4.471487], por lo que no existe suficiente evidencia para afirmar que las medias sean distintas. Las medias muestrales son 10.58774 para las chicas y 8.74165 para los chicos.
 
 La potencia se calcula de forma conservadora con el tamaño del grupo pequeño y la mayor desviación típica.
 
@@ -366,13 +366,13 @@ power.t.test(
   n = min(length(chicas), length(chicos)),
   delta = 2.0305,
   sd = max(sd(chicas), sd(chicos)),
-  sig.level = 0.05,
+  sig.level = 0.01,
   type = "two.sample",
   alternative = "two.sided"
 )
 ```
 
-Para detectar una diferencia de 2.0305, la potencia es aproximadamente 0.382.
+Para detectar una diferencia de 2.0305 con un nivel de significación del 1%, la potencia es aproximadamente 0.177.
 
 ### b)
 
@@ -384,23 +384,23 @@ Las medidas están apareadas: cada estudiante aporta un valor en ambos semestres
 t_pareado <- t.test(
   datos$Curricular.units.1st.sem..enrolled.,
   datos$Curricular.units.2nd.sem..enrolled.,
-  paired = TRUE, alternative = "greater", conf.level = 0.95
+  paired = TRUE, alternative = "greater", conf.level = 0.99
 )
 t_pareado
 ```
 
-El p-valor es 0.001381, por lo que se rechaza la igualdad de promedios con un nivel del 5% y se concluye que el promedio matriculado en el primer semestre es superior. La diferencia media muestral es 0.2575758 asignaturas.
+El p-valor es 0.001381, por lo que se rechaza la igualdad de promedios con un nivel del 1% y se concluye que el promedio matriculado en el primer semestre es superior. La diferencia media muestral es 0.2575758 asignaturas.
 
 ```{r}
 t_pareado_bilateral <- t.test(
   datos$Curricular.units.1st.sem..enrolled.,
   datos$Curricular.units.2nd.sem..enrolled.,
-  paired = TRUE, alternative = "two.sided", conf.level = 0.95
+  paired = TRUE, alternative = "two.sided", conf.level = 0.99
 )
 t_pareado_bilateral$conf.int
 ```
 
-El intervalo de confianza al 95% para la diferencia media es [0.09057, 0.42458].
+El intervalo de confianza al 99% para la diferencia media es [0.03691, 0.47825].
 
 ## Práctica 6
 
@@ -430,7 +430,8 @@ Para resolver el contraste de comparación de dos proporciones independientes (c
 test_p6 <- prop.test(x = tabla_p6[, 2], 
                      n = rowSums(tabla_p6), 
                      alternative = "less", 
-                     correct = FALSE)
+                     correct = FALSE,
+                     conf.level = 0.99)
 test_p6
 
 
@@ -443,7 +444,7 @@ Los resultados muestran que la proporción muestral de éxito en el primer grupo
 
 Dado que el p-valor es muy superior al nivel de significación, no se rechaza la hipótesis nula. Por tanto, no se puede afirmar que la proporción de chicas sea inferior a la de chicos.
 
-El intervalo de confianza al 95% para la diferencia de proporciones (chicas - chicos) es [-1.0000, 0.3964]. Como el 0 está incluido en el intervalo, se confirma que no hay diferencia significativa que permita afirmar que las chicas tengan una proporción inferior.
+El intervalo de confianza al 99% para la diferencia de proporciones (chicas - chicos) es [-1.0000, 0.4546]. Como el 0 está incluido en el intervalo, se confirma que no hay diferencia significativa que permita afirmar que las chicas tengan una proporción inferior.
 
 ### b)
 
@@ -464,7 +465,7 @@ Para estudiar la relación entre Tuition.fees.up.to.date (variable binaria: 0 = 
 Para resolver este contraste podemos aplicar el test chi-cuadrado de Pearson de independencia (método asintótico) y el test exacto de Fisher. Elegimos el test exacto de Fisher. La razón es que, al comprobar las frecuencias esperadas de la tabla de contingencia, 7 de las 10 celdas (el 70%) presentan valores inferiores a 5 (e incluso dos de ellas son menores que 1, con valor 0.9848). Al no cumplirse las condiciones necesarias para la aproximación asintótica a la distribución chi-cuadrado, el test exacto de Fisher resulta el método más adecuado y fiable.
 
 ```{r}
-test_p6b <- fisher.test(tabla_p6b)
+test_p6b <- fisher.test(tabla_p6b, conf.level = 0.99)
 test_p6b
 
 chi2_p6b <- suppressWarnings(as.numeric(chisq.test(tabla_p6b)$statistic))
