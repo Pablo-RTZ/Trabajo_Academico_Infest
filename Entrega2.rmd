@@ -1,0 +1,312 @@
+---
+title: "Trabajo académico (Entrega 2)"
+author: "Álvaro Trives Hernandis, Pablo Aleixandre Moreno, Pablo Ortiz Badenes y Rubén García Villoldo"
+date: "Curso 2026/2027"
+output: 
+    pdf_document:
+    toc: true
+    toc_depth: '2'
+---
+
+## Importación de datos y descripción de variables
+
+Se importan los datos y se clasifican las variables según su tipo para aplicar en cada caso los resúmenes y gráficos adecuados.
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r datos, include=FALSE}
+
+datos <- read.table("AbandoEst_10.txt", header = TRUE, as.is = TRUE)
+dim(datos)
+head(datos, 3)  # mostrar las primeras 3 observaciones de la BBDD
+```
+
+```{r tipos, include=FALSE}
+descDropout <- data.frame(
+  "variable" = colnames(datos),
+  "tipo" = c(
+    "binary", rep("categorical", 2), "binary", "categorical",
+    "numerical", rep("categorical", 4), "numerical",
+    rep("binary", 6), "numerical", "binary",
+    rep("numerical", 8), "categorical"
+  ),
+  stringsAsFactor = FALSE
+)  # Clasificar variables
+
+rownames(descDropout) <- descDropout$variable
+descDropout
+```
+
+## Limpieza inicial de la BBDD
+
+Se revisaron la variabilidad y las distribuciones de las variables para detectar variables prácticamente constantes y valores atípicos.
+
+```{r resumen, include=FALSE}
+
+summary(datos[,descDropout$variable[descDropout$tipo == "numerical"]])
+
+mySD <- apply(
+  datos[, descDropout$variable[descDropout$tipo == "numerical"]],
+  2,
+  sd
+)
+myMU <- colMeans(datos[, descDropout$variable[descDropout$tipo == "numerical"]])
+myCV <- mySD / myMU
+sort(myCV)
+
+apply(
+  datos[, descDropout$variable[descDropout$tipo == "binary"]],
+  2,
+  table,
+  useNA = "i"
+)
+
+apply(
+  datos[, descDropout$variable[descDropout$tipo == "categorical"]],
+  2,
+  table,
+  useNA = "i"
+)
+
+apply(datos[,descDropout$variable[descDropout$tipo == "categorical"]], 2,
+      function(x) round(100 * table(x) / sum(table(x)), 2))
+```
+
+No se detectaron variables numéricas constantes. De entre las variables categóricas, se eliminó `Educational.special.needs` porque solo una observación presenta el valor 1, por lo que se considera prácticamente constante y no permitiría obtener conclusiones fiables.
+
+```{r eliminar, include=FALSE}
+
+datos <- datos[,setdiff(colnames(datos), "Educational.special.needs")]
+descDropout <- descDropout[colnames(datos),]
+
+```
+
+```{r boxplots, include=FALSE}
+
+num_vars <- descDropout$variable[descDropout$tipo == "numerical"]
+
+library(ggplot2)
+datos_grupo1 <- stack(datos[, num_vars[1:2]])
+ggplot(datos_grupo1, aes(x = ind, y = values)) +
+  geom_boxplot(fill = "#69b3a2") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 11)
+  ) +
+  ggtitle("Boxplot numéricas (grupo 1)") +
+  xlab("") +
+  ylab("Valor")
+
+datos_grupo2 <- stack(datos[, num_vars[c(3,5)]])
+ggplot(datos_grupo2, aes(x = ind, y = values)) +
+  geom_boxplot(fill = "#69b3a2") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 11)
+  ) +
+  ggtitle("Boxplot numéricas (grupo 2)") +
+  xlab("") +
+  ylab("Valor")
+
+par(mar = c(10, 3, 2, 2)) # Se deja más márgen para los nombres
+
+datos_grupo3 <- stack(datos[, num_vars[-(c(1:3,5))]])
+ggplot(datos_grupo3, aes(x = ind, y = values)) +
+  geom_boxplot(fill = "#69b3a2") +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 11),
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
+  ) +
+  ggtitle("Boxplot numéricas (grupo 3)") +
+  xlab("") +
+  ylab("Valor")
+```
+
+Los diagramas exploratorios muestran valores atípicos en las variables numéricas. No obstante, se conservan por que la existencia de datos atípicos no justifica directamente su eliminación o interpolación.
+
+```{r barplots, include=FALSE}
+cat_vars <- descDropout$variable[descDropout$tipo == "categorical"]
+
+for (i in seq_along(cat_vars)) {
+  variable <- cat_vars[i]
+  datos_tabla <- as.data.frame(table(datos[, variable]))
+  p <- ggplot(datos_tabla, aes(x = Var1, y = Freq)) +
+    geom_col(fill = "#69b3a2") +
+    theme_minimal() +
+    theme(
+      legend.position = "none",
+      plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+    ) +
+    ggtitle(variable) +
+    xlab("") +
+    ylab("Frecuencia")
+
+  if (i == 2) {
+    p <- p + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  }
+
+  print(p)
+}
+
+```
+
+`Application.order` y `Previous.qualification` presentan distribuciones muy desiguales. No obstante, se mantienen porque son necesarias para responder a preguntas posteriores de la práctica.
+
+## Práctica 4
+
+### a)
+
+**Para el nivel de significación indicado, ¿se puede afirmar que la media de la variable Curricular.units.1st.sem..grade. para las chicas es igual que para los chicos? Comprobad si se cumplen los requisitos necesarios para aplicar el test elegido. Calculad la potencia del test estadístico aplicado para detectar una diferencia entre las medias de 2.0305.**
+
+Las muestras son independientes (una nota corresponde a una estudiante o estudiante distinto). Aunque ambos grupos son suficientemente grandes para aplicar un test asintótico, hemos de contrastar la normalidad y la igualdad de varianzas.
+
+```{r}
+chicas <- datos$Curricular.units.1st.sem..grade.[datos$Gender == 0]
+chicos <- datos$Curricular.units.1st.sem..grade.[datos$Gender == 1]
+
+shapiro.test(chicas)
+shapiro.test(chicos)
+
+library(lawstat)
+levene.test(datos$Curricular.units.1st.sem..grade.,
+            datos$Gender, location = "median")
+```
+
+Los test de Shapiro-Wilk rechazan la normalidad en ambos grupos. No obstante, los tamaños muestrales son elevados y el test robusto de Levene, robusto ante el incumplimiento de normalidad, indica varianzas distintas (p-valor = 0.03838). Por ello, usamos un test bilateral de Welch para varianzas desiguales con el objetivo de comparar las medias.
+
+```{r}
+ttest_genero <- t.test(
+  datos$Curricular.units.1st.sem..grade. ~ datos$Gender,
+  alternative = "two.sided", var.equal = FALSE, conf.level = 0.99
+)
+ttest_genero
+```
+
+Con un nivel del 1%, no se puede rechazar la igualdad de medias (p-valor = 0.06717). El intervalo de confianza al 99% es [-0.779315, 4.471487], por lo que no existe suficiente evidencia para afirmar que las medias sean distintas. Las medias muestrales son 10.58774 para las chicas y 8.74165 para los chicos.
+
+La potencia se calcula de forma conservadora con el tamaño del grupo pequeño y la mayor desviación típica.
+
+```{r}
+power.t.test(
+  n = min(length(chicas), length(chicos)),
+  delta = 2.0305,
+  sd = max(sd(chicas), sd(chicos)),
+  sig.level = 0.01,
+  type = "two.sample",
+  alternative = "two.sided"
+)
+```
+
+Para detectar una diferencia de 2.0305 con un nivel de significación del 1%, la potencia es aproximadamente 0.177.
+
+### b)
+
+**Cuando comparamos los dos semestres, ¿podemos afirmar que el promedio de Curricular.units.1st.sem..enrolled. es superior al promedio de Curricular.units.2nd.sem..enrolled.? Calculad un intervalo de confianza para la diferencia media.**
+
+Las medidas están apareadas: cada estudiante aporta un valor en ambos semestres. Por ello, analizamos la diferencia primer semestre menos segundo semestre mediante un test $t$ apareado unilateral. Como hay 132 parejas, el test puede aplicarse aunque la diferencia no sea normal.
+
+```{r}
+t_pareado <- t.test(
+  datos$Curricular.units.1st.sem..enrolled.,
+  datos$Curricular.units.2nd.sem..enrolled.,
+  paired = TRUE, alternative = "greater", conf.level = 0.99
+)
+t_pareado
+```
+
+El p-valor es 0.001381, por lo que se rechaza la igualdad de promedios con un nivel del 1% y se concluye que el promedio matriculado en el primer semestre es superior. La diferencia media muestral es 0.2575758 asignaturas.
+
+```{r}
+t_pareado_bilateral <- t.test(
+  datos$Curricular.units.1st.sem..enrolled.,
+  datos$Curricular.units.2nd.sem..enrolled.,
+  paired = TRUE, alternative = "two.sided", conf.level = 0.99
+)
+t_pareado_bilateral$conf.int
+```
+
+El intervalo de confianza al 99% para la diferencia media es [0.03691, 0.47825].
+
+## Práctica 6
+
+### a)
+
+**Para el nivel de significación indicado, ¿se puede afirmar que la proporción de estudiantes con un valor de Curricular.units.2nd.sem..approved. mayor que 1 es inferior en las chicas que en los chicos? Indicad qué métodos se podrían aplicar para resolver este contraste y, en caso de que haya más de uno, justificad vuestra elección.**
+
+```{r}
+cumple <- datos$Curricular.units.2nd.sem..approved. > 1
+
+#tabla de contingencia 
+tabla_p6 <- table(Sexo = datos$Gender, Cumple = cumple)
+tabla_p6
+
+
+prop.table(tabla_p6, margin = 1) 
+
+chisq.test(tabla_p6)$expected
+```
+
+Para resolver el contraste de comparación de dos proporciones independientes (chicas vs. chicos) con hipótesis unilateral podemos usar: el contraste asintótico de dos proporciones y el test exacto de Fisher. Elegimos el contraste asintótico de dos proporciones. La razón es que disponemos de un tamaño muestral suficientemente grande (n=132) y, al comprobar las frecuencias esperadas de la tabla de contingencia, todas son mayores a 5. Al cumplirse esta condición, la aproximación a la normal es válida, por lo que este test es perfectamente fiable y tiene mayor potencia que el test de Fisher.
+
+```{r}
+
+# H1 = p_chicas < p_chicos
+# Usamos la columna 2 (los que cumplen TRUE) como éxitos
+test_p6 <- prop.test(x = tabla_p6[, 2], 
+                     n = rowSums(tabla_p6), 
+                     alternative = "less", 
+                     correct = FALSE,
+                     conf.level = 0.99)
+test_p6
+
+
+test_p6$conf.int
+
+
+```
+
+Los resultados muestran que la proporción muestral de éxito en el primer grupo (chicas) es de 0.7882, mientras que en el segundo grupo (chicos) es de 0.5319. El estadístico de contraste es igual a 9.4148 y el p-valor obtenido es 0.9989.
+
+Dado que el p-valor es muy superior al nivel de significación, no se rechaza la hipótesis nula. Por tanto, no se puede afirmar que la proporción de chicas sea inferior a la de chicos.
+
+El intervalo de confianza al 99% para la diferencia de proporciones (chicas - chicos) es [-1.0000, 0.4546]. Como el 0 está incluido en el intervalo, se confirma que no hay diferencia significativa que permita afirmar que las chicas tengan una proporción inferior.
+
+### b)
+
+**Estudiad la relación entre las variables Tuition.fees.up.to.date y Application.order justificando el método elegido. Indicad qué tipo de test habéis aplicado (proporciones, independencia, homogeneidad,…) y qué conclusiones obtenéis. Calculad, si es posible, el grado de relación con un parámetro adecuado.**
+
+```{r}
+tabla_p6b <- table(Matricula_al_dia = datos$Tuition.fees.up.to.date,
+                   Orden_solicitud = datos$Application.order)
+tabla_p6b
+
+prop.table(tabla_p6b, margin = 2)
+
+chisq.test(tabla_p6b)$expected
+```
+
+Para estudiar la relación entre Tuition.fees.up.to.date (variable binaria: 0 = pagos no al día, 1 = pagos al día) y Application.order (variable categórica con 5 niveles observados en la muestra: 1, 3, 4, 5 y 6) aplicamos un contraste de independencia. Se trata de un test de independencia, y no de homogeneidad ni de comparación de dos proporciones, porque partimos de una única muestra aleatoria de n=132 estudiantes en la que se observan simultáneamente dos variables categóricas sin haber fijado previamente los totales de fila o columna, y una de las variables tiene más de dos categorías.
+
+Para resolver este contraste podemos aplicar el test chi-cuadrado de Pearson de independencia (método asintótico) y el test exacto de Fisher. Elegimos el test exacto de Fisher. La razón es que, al comprobar las frecuencias esperadas de la tabla de contingencia, 7 de las 10 celdas (el 70%) presentan valores inferiores a 5 (e incluso dos de ellas son menores que 1, con valor 0.9848). Al no cumplirse las condiciones necesarias para la aproximación asintótica a la distribución chi-cuadrado, el test exacto de Fisher resulta el método más adecuado y fiable.
+
+```{r}
+test_p6b <- fisher.test(tabla_p6b, conf.level = 0.99)
+test_p6b
+
+chi2_p6b <- suppressWarnings(as.numeric(chisq.test(tabla_p6b)$statistic))
+n_p6b <- sum(tabla_p6b)
+k_p6b <- min(nrow(tabla_p6b) - 1, ncol(tabla_p6b) - 1)
+
+v_cramer <- sqrt(chi2_p6b / (n_p6b * k_p6b))
+v_cramer
+```
+
+En la tabla de contingencia se observa que la proporción muestral de estudiantes con la matrícula al día (1) es muy similar en todos los órdenes de solicitud: 0.7905 en primera opción, 0.8182 en tercera, 1.0000 en cuarta, 0.8000 en quinta y 0.8333 en sexta. Al aplicar el test exacto de Fisher se obtiene un p-valor igual a 0.9782.
+
+Dado que el p-valor es muy superior al nivel de significación, no se rechaza la hipótesis nula de independencia. Por tanto, no se puede afirmar que exista relación entre tener la matrícula al día y el orden de preferencia en la solicitud.
+
+Para medir el grado de relación entre ambas variables, al tratarse de una tabla 2x5 (mayor que 2x2), calculamos el coeficiente V de Cramér. El valor obtenido es 0.1023, un valor muy cercano a 0 que confirma que la relación entre ambas variables es prácticamente nula.
