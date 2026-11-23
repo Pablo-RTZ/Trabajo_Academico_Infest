@@ -365,7 +365,7 @@ library(gridExtra)
 grid.arrange(p1, p2, nrow = 1)
 ```
 
-Contamos con muestras de tamaño 85 y 47, respectivamente. Se aprecia en los gráficos que la distribución no es simétrica ni acampanada. Al existir ceros en la variable, no se puede aplicar de forma directa la transformación box-cox ni la logarítmica. Comprobamos formalmente la normalidad mediante el test de Shapiro-Wilk, con $H_0:X \sim N(\mu, \sigma^2)$ frente a $H_1:X \nsim N(\mu,\sigma)$ junto con QQ-plots.
+Contamos con muestras de tamaño 85 y 47 en los chicos y en las chicas, respectivamente. Se aprecia en los gráficos que la distribución no es simétrica ni acampanada. Al existir ceros en la variable, no se puede aplicar de forma directa la transformación box-cox ni la logarítmica. Comprobamos formalmente la normalidad mediante el test de Shapiro-Wilk, con $H_0:X \sim N(\mu, \sigma^2)$ frente a $H_1:X \nsim N(\mu,\sigma)$ junto con QQ-plots.
 
 ```{r}
 ggplot(datos, aes(sample = Curricular.units.1st.sem..grade., colour = Genero)) +
@@ -382,18 +382,20 @@ Vemos que los p-valores de los test de Shapiro-Wilk rechazan la hipótesis de no
 Para la comparación de varianzas poblacionales, además del test F (que sabemos que es sensible a la falta de normalidad), emplearemos el test de Levene para contrastar $H_0:\sigma_{Chicos}=\sigma_{Chicos}$ frente a $H_1:\sigma_{Chicos}\ne \sigma_{Chicas}$ .
 
 ```{r}
-var.test(Curricular.units.1st.sem..grade. ~ Genero, data = datos, alternative = "two.sided")
+var.test(Curricular.units.1st.sem..grade. ~ Genero, data = datos, alternative = "two.sided",conf.level=0.99)
 library(lawstat)
 levene.test(datos$Curricular.units.1st.sem..grade., datos$Genero)
 ```
 
-Con un p-valor de 0.0723 en el caso del test $F$ y un p-valor de
+Con un p-valor de 0.0723 en el caso del test $F$ y un p-valor de 0.038 en el caso del test de Levene, no existe suficiente evidencia muestral para rechazar la igualdad de varianzas con $\alpha=0.01$ . En consecuencia, y dado que los tamaños de las muestras son suficientemente grandes, aplicamos el test de Welch para contrastar la hipótesis $H_0:\mu_{Chicos}=\mu_{Chicas}$ frente a $H_1:\mu_{Chicos}\ne \mu_{Chicas}$ .
 
-Por ello, usamos un test bilateral de Welch para varianzas desiguales con el objetivo de comparar las medias.
+```{r}
+t.test(datos$Curricular.units.1st.sem..grade. ~ datos$Gender, alternative = "two.sided",var.equal = FALSE, conf.level = 0.99)
+```
 
-Con un nivel del 1%, no se puede rechazar la igualdad de medias (p-valor = 0.06717). El intervalo de confianza al 99% es [-0.779315, 4.471487], por lo que no existe suficiente evidencia para afirmar que las medias sean distintas. Las medias muestrales son 10.58774 para las chicas y 8.74165 para los chicos.
+Con $\alpha=0.01$ , no se puede rechazar la igualdad de medias, pues p-valor = 0.06717. El intervalo de confianza al 99% es $IC=[-0.779315, 4.471487]$ , por lo que no existe suficiente evidencia para afirmar que las medias sean distintas. Las medias muestrales son 10.58774 para las chicas y 8.74165 para los chicos.
 
-La potencia se calcula de forma conservadora con el tamaño del grupo pequeño y la mayor desviación típica.
+Para calcular la potencia del test, como $\verb|power.t.test|$ asume el mismo tamaño muestral y la misma desviación típica en ambos grupos, para actuar de forma conservadora, cogemos el mínimo tamaño muestral y el máximo de las dos desviaciones típicas.
 
 ```{r}
 power.t.test(
@@ -406,15 +408,27 @@ power.t.test(
 )
 ```
 
-Para detectar una diferencia de 2.0305 con un nivel de significación del 1%, la potencia es aproximadamente 0.3823.
+Para detectar una diferencia de $\Delta=2.0305$ con $\alpha=0.01$ , la potencia es aproximadamente 0.1768.
 
 ### b)
 
 **Cuando comparamos los dos semestres, ¿podemos afirmar que el promedio de Curricular.units.1st.sem..enrolled. es superior al promedio de Curricular.units.2nd.sem..enrolled.? Calculad un intervalo de confianza para la diferencia media.**
 
-Las medidas están apareadas: cada estudiante aporta un valor en ambos semestres. Por ello, analizamos la diferencia primer semestre menos segundo semestre mediante un test $t$ apareado unilateral. Como hay 132 parejas, el test puede aplicarse aunque la diferencia no sea normal.
+Las medidas están apareadas: cada estudiante aporta un valor en ambos semestres. Por ello, analizamos la diferencia primer semestre menos segundo semestre, con $\mu_D=\mu_1-\mu_2$ mediante un test $t$ apareado ($H_0: \mu_D =0$ frente a $H_1:\mu_D>0$ ) asintótico pues hay 132 parejas (no requiere de datos normales). Comenzamos seleccionando los datos de interés y visualizando los datos:
 
 ```{r}
+unidades = subset(datos, select = c(Curricular.units.1st.sem..enrolled.,
+                                    Curricular.units.2nd.sem..enrolled.))
+summary(unidades)
+boxplot(unidades, notch = TRUE, col = "skyblue", main = "Unidades curriculares matriculadas")
+```
+
+```{r}
+D = unidades$Curricular.units.1st.sem..enrolled. - unidades$Curricular.units.2nd.sem..enrolled.
+hist(D, main = "", xlab = "Diferencia (D)", col = "darkgreen")
+abline(v = mean(D), col = "grey", lty = 2, lwd = 2)
+
+# Contraste unilateral (H1: mu_D > 0)
 t_pareado <- t.test(
   datos$Curricular.units.1st.sem..enrolled.,
   datos$Curricular.units.2nd.sem..enrolled.,
@@ -434,7 +448,7 @@ t_pareado_bilateral <- t.test(
 t_pareado_bilateral$conf.int
 ```
 
-El intervalo de confianza al 99% para la diferencia media es [0.03691, 0.47825].
+El intervalo de confianza al 99% para la diferencia media es $IC=[0.03691, 0.47825]$.
 
 ## Práctica 6
 
@@ -484,61 +498,41 @@ El intervalo de confianza al 99% para la diferencia de proporciones (chicas - ch
 
 **Estudiad la relación entre las variables Tuition.fees.up.to.date y Application.order justificando el método elegido. Indicad qué tipo de test habéis aplicado (proporciones, independencia, homogeneidad,…) y qué conclusiones obtenéis. Calculad, si es posible, el grado de relación con un parámetro adecuado.**
 
+Queremos estudiar si existe relación entre las variables categóricas **Tuition.fees.up.to.date** y **Application.order.** Como ambas variables se han registrado sobre una única muestra aleatoria, aplicamos un test de independencia, y no de homogeneidad ni de comparación de dos proporciones. Primero, construimos la tabla de contingencia y la visualizamos mediante un gráfico mosaico.
+
 ```{r}
-tabla_p6b <- table(Matricula_al_dia = datos$Tuition.fees.up.to.date,
-                   Orden_solicitud = datos$Application.order)
-tabla_p6b
-
-prop.table(tabla_p6b, margin = 2)
-
+tabla_p6b = table(datos$Application.order, datos$Tuition.fees.up.to.date); tabla
+mosaicplot(tabla_p6b, main = "Tuition fees up to date & Application order",
+           color = c("green4", "red3"))
 chisq.test(tabla_p6b)$expected
 ```
 
-Para estudiar la relación entre Tuition.fees.up.to.date (variable binaria: 0 = pagos no al día, 1 = pagos al día) y Application.order (variable categórica con 5 niveles observados en la muestra: 1, 3, 4, 5 y 6) aplicamos un contraste de independencia. Se trata de un test de independencia, y no de homogeneidad ni de comparación de dos proporciones, porque partimos de una única muestra aleatoria de n=132 estudiantes en la que se observan simultáneamente dos variables categóricas sin haber fijado previamente los totales de fila o columna, y una de las variables tiene más de dos categorías.
-
-Para resolver este contraste podemos aplicar el test chi-cuadrado de Pearson de independencia (método asintótico) y el test exacto de Fisher. Elegimos el test exacto de Fisher. La razón es que, al comprobar las frecuencias esperadas de la tabla de contingencia, 7 de las 10 celdas (el 70%) presentan valores inferiores a 5 (e incluso dos de ellas son menores que 1, con valor 0.9848). Al no cumplirse las condiciones necesarias para la aproximación asintótica a la distribución chi-cuadrado, el test exacto de Fisher resulta el método más adecuado y fiable.
+Comprobamos que en las frecuencias esperadas de la tabla de contingencia, 7 de las 10 celdas (el 70%) presentan valores inferiores a 5 (e incluso dos de ellas son menores que 1, con valor 0.9848). Como el test $\chi^2$ clásico asume que el estadístico sigue aprox. una distribución $\chi^2$ , la aproximación clásica puede no ser buena si hay valores menores que 5.
 
 ```{r}
-test_p6b <- fisher.test(tabla_p6b, conf.level = 0.99)
-test_p6b
+chi2Test = chisq.test(tabla_p6b, correct = FALSE)
+```
 
-chi2_p6b <- suppressWarnings(as.numeric(chisq.test(tabla_p6b)$statistic))
-n_p6b <- sum(tabla_p6b)
-k_p6b <- min(nrow(tabla_p6b) - 1, ncol(tabla_p6b) - 1)
+Efectivamente, al no cumplirse las condiciones necesarias para la aproximación asintótica a la distribución $\chi^2$ clásica, justificamos el uso del test $\chi^2$ con p-valor calculado con remuestreo de Montecarlo (función $\verb|chisq.test|$ con $\verb|simulate.p.value=TRUE|$ ) y una semilla para reproducibilidad. De forma válida, también el test de Fisher. Aplicando ambos:
 
-v_cramer <- sqrt(chi2_p6b / (n_p6b * k_p6b))
-v_cramer
+```{r}
+set.seed(123)
+chi2Test = chisq.test(tabla_p6b, simulate.p.value = TRUE, B = 2000)
+chi2Test
+
+fisher.test(tabla_p6b)
+prop.table(tabla_p6b, margin = 2)
 ```
 
 En la tabla de contingencia se observa que la proporción muestral de estudiantes con la matrícula al día (1) es muy similar en todos los órdenes de solicitud: 0.7905 en primera opción, 0.8182 en tercera, 1.0000 en cuarta, 0.8000 en quinta y 0.8333 en sexta. Al aplicar el test exacto de Fisher se obtiene un p-valor igual a 0.9782.
 
 Dado que el p-valor es muy superior al nivel de significación, no se rechaza la hipótesis nula de independencia. Por tanto, no se puede afirmar que exista relación entre tener la matrícula al día y el orden de preferencia en la solicitud.
 
-Para medir el grado de relación entre ambas variables, al tratarse de una tabla 2x5 (mayor que 2x2), calculamos el coeficiente V de Cramér. El valor obtenido es 0.1023, un valor muy cercano a 0 que confirma que la relación entre ambas variables es prácticamente nula.
-
-**PRÁCTICA 7**
-
-**Utilizad un test apropiado para determinar si la distribución de probabilidad de la variable Curricular.units.1st.sem..enrolled. es la misma para los grupos de estudiantes dados por Scholarship.holder=0 y Scholarship.holder=1. ¿Qué conclusiones se obtienen?**
+Para medir el grado de relación entre ambas variables, al tratarse de una tabla 2x5 (mayor que 2x2), calculamos el coeficiente V de Cramér.
 
 ```{r}
-d0 = density(datos$Curricular.units.1st.sem..enrolled.[datos$Scholarship.holder == 0])
-d1 = density(datos$Curricular.units.1st.sem..enrolled.[datos$Scholarship.holder == 1])
-
-# Gráfico de densidades (Caso 3 de la práctica)
-plot(d0, col = "red3", lwd = 2, main = "",
-     xlab = "Curricular.units.1st.sem..enrolled.",
-     ylim = c(0, max(d0$y, d1$y)))
-lines(d1, col = "green3", lwd = 2)
-legend("topright", c("Sin beca (0)", "Con beca (1)"),
-       col = c("red3", "green3"), lwd = 2, bty = "n")
-
-# Test de Kolmogorov-Smirnov para igualdad de distribuciones
-ks.test(grupo0, grupo1)
-
-# Test de Mann-Whitney-Wilcoxon (bilateral)
-datos$Scholarship.holder = factor(datos$Scholarship.holder,
-                                  levels = c(0, 1),
-                                  labels = c("Sin_beca", "Con_beca"))
-wilcox.test(Curricular.units.1st.sem..enrolled. ~ Scholarship.holder,
-            data = datos, alternative = "two.sided")
+Vcramer = sqrt(chi2Test$statistic / (sum(tabla_p6b) * (min(dim(tabla_p6b))-1)))
+Vcramer
 ```
+
+El valor obtenido es 0.1023, un valor muy cercano a 0 que confirma que la relación entre ambas variables es prácticamente nula.
