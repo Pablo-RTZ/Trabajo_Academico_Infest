@@ -481,3 +481,28 @@ En la tabla de contingencia se observa que la proporción muestral de estudiante
 Dado que el p-valor es muy superior al nivel de significación, no se rechaza la hipótesis nula de independencia. Por tanto, no se puede afirmar que exista relación entre tener la matrícula al día y el orden de preferencia en la solicitud.
 
 Para medir el grado de relación entre ambas variables, al tratarse de una tabla 2x5 (mayor que 2x2), calculamos el coeficiente V de Cramér. El valor obtenido es 0.1023, un valor muy cercano a 0 que confirma que la relación entre ambas variables es prácticamente nula.
+
+```{r}
+grupo0 = datos$Curricular.units.1st.sem..enrolled.[datos$Scholarship.holder == 0]
+grupo1 = datos$Curricular.units.1st.sem..enrolled.[datos$Scholarship.holder == 1]
+
+# Gráfico de densidades (Caso 3 de la práctica)
+d0 = density(grupo0)
+d1 = density(grupo1)
+plot(d0, col = "red3", lwd = 2, main = "",
+     xlab = "Curricular.units.1st.sem..enrolled.",
+     ylim = c(0, max(d0$y, d1$y)))
+lines(d1, col = "green3", lwd = 2)
+legend("topright", c("Sin beca (0)", "Con beca (1)"),
+       col = c("red3", "green3"), lwd = 2, bty = "n")
+
+# Test de Kolmogorov-Smirnov para igualdad de distribuciones
+ks.test(grupo0, grupo1)
+
+# Test de Mann-Whitney-Wilcoxon (bilateral)
+datos$Scholarship.holder = factor(datos$Scholarship.holder,
+                                  levels = c(0, 1),
+                                  labels = c("Sin_beca", "Con_beca"))
+wilcox.test(Curricular.units.1st.sem..enrolled. ~ Scholarship.holder,
+            data = datos, alternative = "two.sided")
+```
