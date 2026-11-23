@@ -333,29 +333,63 @@ Como el intervalo de confianza para $\alpha=0.01$, es $[0.2678988,1]$, se puede 
 
 **Para el nivel de significación indicado, ¿se puede afirmar que la media de la variable Curricular.units.1st.sem..grade. para las chicas es igual que para los chicos? Comprobad si se cumplen los requisitos necesarios para aplicar el test elegido. Calculad la potencia del test estadístico aplicado para detectar una diferencia entre las medias de 2.0305.**
 
-Las muestras son independientes (una nota corresponde a una estudiante o estudiante distinto). Aunque ambos grupos son suficientemente grandes para aplicar un test asintótico, hemos de contrastar la normalidad y la igualdad de varianzas.
+Para resolver, aplicamos un test de comparación de medias bilateral con las siguientes hipótesis: $H_0:\mu_{Chicas}=\mu_{Chicos}$ frente a $H_1:\mu_{Chicos}\ne \mu_{Chicas}$ . Antes de aplicar el test, exploraremos las distribuciones de las variables mediante violin plots. Dado el tamaño muestral de los dos grupos, podremos aplicar un test asintótico, previa comprobación de si los datos son normales, para seleccionar qué test aplicar.
 
 ```{r}
-chicas <- datos$Curricular.units.1st.sem..grade.[datos$Gender == 0]
-chicos <- datos$Curricular.units.1st.sem..grade.[datos$Gender == 1]
+library(knitr)
+datos$Genero = factor(datos$Gender, levels = c(0, 1), labels = c("Chicas", "Chicos"))
+kable(table(datos$Genero))
 
-shapiro.test(chicas)
-shapiro.test(chicos)
+library(ggplot2)
+## Boxplot
+p1 = ggplot(datos, aes(x=Genero, y=Curricular.units.1st.sem..grade., fill=Genero)) +
+  geom_boxplot() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=11)
+  ) +
+  ggtitle("Nota 1er semestre según género") +
+  xlab("")
 
+## Violin plot
+p2 = ggplot(datos, aes(x=Genero, y=Curricular.units.1st.sem..grade., fill=Genero)) +
+  geom_violin() +
+  theme(
+    legend.position="none",
+    plot.title = element_text(size=11)
+  ) +
+  ggtitle("Nota 1er semestre según género") +
+  xlab("")
+
+library(gridExtra)
+grid.arrange(p1, p2, nrow = 1)
+```
+
+Contamos con muestras de tamaño 85 y 47, respectivamente. Se aprecia en los gráficos que la distribución no es simétrica ni acampanada. Al existir ceros en la variable, no se puede aplicar de forma directa la transformación box-cox ni la logarítmica. Comprobamos formalmente la normalidad mediante el test de Shapiro-Wilk, con $H_0:X \sim N(\mu, \sigma^2)$ frente a $H_1:X \nsim N(\mu,\sigma)$ junto con QQ-plots.
+
+```{r}
+ggplot(datos, aes(sample = Curricular.units.1st.sem..grade., colour = Genero)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("Curricular.units.1st.sem..grade.")
+
+shapiro.test(datos$Curricular.units.1st.sem..grade.[datos$Genero == "Chicas"])
+shapiro.test(datos$Curricular.units.1st.sem..grade.[datos$Genero == "Chicos"])
+```
+
+Vemos que los p-valores de los test de Shapiro-Wilk rechazan la hipótesis de normalidad, y aunque, al ser el tamaño de muestra grande, este test es más sensible, completamos el análisis con los QQ-plots, que confirman lo expuesto.
+
+Para la comparación de varianzas poblacionales, además del test F (que sabemos que es sensible a la falta de normalidad), emplearemos el test de Levene para contrastar $H_0:\sigma_{Chicos}=\sigma_{Chicos}$ frente a $H_1:\sigma_{Chicos}\ne \sigma_{Chicas}$ .
+
+```{r}
+var.test(Curricular.units.1st.sem..grade. ~ Genero, data = datos, alternative = "two.sided")
 library(lawstat)
-levene.test(datos$Curricular.units.1st.sem..grade.,
-            datos$Gender, location = "median")
+levene.test(datos$Curricular.units.1st.sem..grade., datos$Genero)
 ```
 
-Los test de Shapiro-Wilk rechazan la normalidad en ambos grupos. No obstante, los tamaños muestrales son elevados y el test robusto de Levene, robusto ante el incumplimiento de normalidad, indica varianzas distintas (p-valor = 0.03838). Por ello, usamos un test bilateral de Welch para varianzas desiguales con el objetivo de comparar las medias.
+Con un p-valor de 0.0723 en el caso del test $F$ y un p-valor de
 
-```{r}
-ttest_genero <- t.test(
-  datos$Curricular.units.1st.sem..grade. ~ datos$Gender,
-  alternative = "two.sided", var.equal = FALSE, conf.level = 0.99
-)
-ttest_genero
-```
+Por ello, usamos un test bilateral de Welch para varianzas desiguales con el objetivo de comparar las medias.
 
 Con un nivel del 1%, no se puede rechazar la igualdad de medias (p-valor = 0.06717). El intervalo de confianza al 99% es [-0.779315, 4.471487], por lo que no existe suficiente evidencia para afirmar que las medias sean distintas. Las medias muestrales son 10.58774 para las chicas y 8.74165 para los chicos.
 
@@ -372,7 +406,7 @@ power.t.test(
 )
 ```
 
-Para detectar una diferencia de 2.0305 con un nivel de significación del 1%, la potencia es aproximadamente 0.177.
+Para detectar una diferencia de 2.0305 con un nivel de significación del 1%, la potencia es aproximadamente 0.3823.
 
 ### b)
 
@@ -482,13 +516,15 @@ Dado que el p-valor es muy superior al nivel de significación, no se rechaza la
 
 Para medir el grado de relación entre ambas variables, al tratarse de una tabla 2x5 (mayor que 2x2), calculamos el coeficiente V de Cramér. El valor obtenido es 0.1023, un valor muy cercano a 0 que confirma que la relación entre ambas variables es prácticamente nula.
 
+**PRÁCTICA 7**
+
+**Utilizad un test apropiado para determinar si la distribución de probabilidad de la variable Curricular.units.1st.sem..enrolled. es la misma para los grupos de estudiantes dados por Scholarship.holder=0 y Scholarship.holder=1. ¿Qué conclusiones se obtienen?**
+
 ```{r}
-grupo0 = datos$Curricular.units.1st.sem..enrolled.[datos$Scholarship.holder == 0]
-grupo1 = datos$Curricular.units.1st.sem..enrolled.[datos$Scholarship.holder == 1]
+d0 = density(datos$Curricular.units.1st.sem..enrolled.[datos$Scholarship.holder == 0])
+d1 = density(datos$Curricular.units.1st.sem..enrolled.[datos$Scholarship.holder == 1])
 
 # Gráfico de densidades (Caso 3 de la práctica)
-d0 = density(grupo0)
-d1 = density(grupo1)
 plot(d0, col = "red3", lwd = 2, main = "",
      xlab = "Curricular.units.1st.sem..enrolled.",
      ylim = c(0, max(d0$y, d1$y)))
